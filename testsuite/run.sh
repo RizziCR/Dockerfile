@@ -6,6 +6,10 @@ else
     TEST_TARGET="all"
 fi
 
+if [ -z "$DOCKER_PULL" ]; then
+    DOCKER_PULL=0
+fi
+
 set -o pipefail  # trace ERR through pipes
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
@@ -27,7 +31,9 @@ BASE_DIR=$(dirname "$SCRIPT_DIR")
 COLUMNS=$(tput cols)
 
 OS_VERSION=""
-OS_VERSION_LATEST="14.04"
+
+DOCKER_REPOSITORY="$(cat ../DOCKER_REPOSITORY)"
+DOCKER_TAG_LATEST="$(cat ../DOCKER_TAG_LATEST)"
 
 ###
  # Relative dir
@@ -63,6 +69,11 @@ function runTestForTag() {
     DOCKER_IMAGE_WITH_TAG="${DOCKER_IMAGE}:${DOCKER_TAG}"
 
     echo ">>> Testing '$DOCKER_IMAGE_WITH_TAG' with spec '$(basename "$SPEC_PATH" _spec.rb)' [family: $OS_FAMILY, version: $OS_VERSION]"
+
+    if [ "$DOCKER_PULL" -eq 1 ]; then
+        echo " * Pulling $DOCKER_IMAGE_WITH_TAG from Docker hub ..."
+        docker pull "$DOCKER_IMAGE_WITH_TAG"
+    fi
 
     ## Build Dockerfile
     echo "# Temporary dockerfile for test run
@@ -127,6 +138,26 @@ function printRepeatedChar() {
 }
 
 initEnvironment
+
+#######################################
+# webdevops/bootstrap
+#######################################
+
+[[ $(checkTestTarget bootstrap) ]] && {
+    setupTestEnvironment "bootstrap"
+
+    OS_VERSION="12.04" runTestForTag "ubuntu-12.04"
+    OS_VERSION="14.04" runTestForTag "ubuntu-14.04"
+    OS_VERSION="15.04" runTestForTag "ubuntu-15.04"
+    OS_VERSION="15.10" runTestForTag "ubuntu-15.10"
+
+    setEnvironmentOsFamily "redhat"
+    OS_VERSION="7" runTestForTag "centos-7"
+
+    setEnvironmentOsFamily "debian"
+    OS_VERSION="7" runTestForTag "debian-7"
+    OS_VERSION="8" runTestForTag "debian-8"
+}
 
 #######################################
 # webdevops/ansible
@@ -289,7 +320,7 @@ initEnvironment
 
 [[ $(checkTestTarget hhvm) ]] && {
     setupTestEnvironment "hhvm"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 }
 
 #######################################
@@ -298,7 +329,7 @@ initEnvironment
 
 [[ $(checkTestTarget hhvm-apache) ]] && {
     setupTestEnvironment "hhvm-apache"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 }
 
 
@@ -308,7 +339,7 @@ initEnvironment
 
 [[ $(checkTestTarget hhvm-nginx) ]] && {
     setupTestEnvironment "hhvm-nginx"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 }
 
 #######################################
@@ -317,7 +348,7 @@ initEnvironment
 
 [[ $(checkTestTarget postfix) ]] && {
     setupTestEnvironment "postfix"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 }
 
 #######################################
@@ -326,7 +357,7 @@ initEnvironment
 
 [[ $(checkTestTarget vsftp) ]] && {
     setupTestEnvironment "vsftp"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 
 }
 
@@ -336,7 +367,7 @@ initEnvironment
 
 [[ $(checkTestTarget mail-sandbox) ]] && {
     setupTestEnvironment "mail-sandbox"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 
 }
 
@@ -346,7 +377,7 @@ initEnvironment
 
 [[ $(checkTestTarget ssh) ]] && {
     setupTestEnvironment "ssh"
-    OS_VERSION="$OS_VERSION_LATEST" runTestForTag "latest"
+    OS_VERSION="$DOCKER_TAG_LATEST" runTestForTag "latest"
 
 }
 
